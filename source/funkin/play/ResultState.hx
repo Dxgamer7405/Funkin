@@ -845,7 +845,7 @@ class ResultState extends MusicBeatSubState
       speedOfTween.x -= 0.1;
     }
 
-    if (controls.PAUSE)
+    if (controls.PAUSE #if android || FlxG.android.justReleased.BACK #end)
     {
       if (FlxG.sound.music != null)
       {

@@ -6,6 +6,8 @@ import funkin.ui.debug.DebugMenuSubState;
 import flixel.FlxObject;
 import flixel.FlxSprite;
 import flixel.FlxState;
+import flixel.FlxG;
+import flixel.ui.FlxButton;
 import flixel.addons.transition.FlxTransitionableState;
 import flixel.effects.FlxFlicker;
 import flixel.graphics.frames.FlxAtlasFrames;
@@ -27,6 +29,11 @@ import funkin.ui.title.TitleState;
 import funkin.ui.story.StoryMenuState;
 import funkin.ui.Prompt;
 import funkin.util.WindowUtil;
+import mobile.CreditsMobileState;
+import flixel.text.FlxText;
+import flixel.input.touch.FlxTouch;
+import funkin.util.Utils.BSLTouchUtils;
+
 #if discord_rpc
 import Discord.DiscordClient;
 #end
@@ -164,13 +171,29 @@ class MainMenuState extends MusicBeatState
 
     // FlxG.camera.setScrollBounds(bg.x, bg.x + bg.width, bg.y, bg.y + bg.height * 1.2);
 
+    #if mobile
+    addVirtualPad(UP_DOWN, A_B);
+    #end
     super.create();
 
     // This has to come AFTER!
     this.leftWatermarkText.text = Constants.VERSION;
-    // this.rightWatermarkText.text = "blablabla test";
+    this.rightWatermarkText.text = "Touch Here to see ANDROID PORT Credits";
 
     // NG.core.calls.event.logEvent('swag').send();
+  }
+
+  function onMobileCredits():Void
+  {
+    startExitState(() -> new CreditsMobileState());
+  }
+
+  public function checkArea() //repollo
+  {
+    var touchy = {x: 803, y: 0, width: 477, height: 65};
+    if (BSLTouchUtils.touchScreenX() >= touchy.x && BSLTouchUtils.touchScreenX() <= touchy.x + touchy.width && BSLTouchUtils.touchScreenY() >= touchy.y && BSLTouchUtils.touchScreenY() <= touchy.y + touchy.height) return true;
+
+    return false;
   }
 
   function playMenuMusic():Void
@@ -321,21 +344,27 @@ class MainMenuState extends MusicBeatState
 
     if (FlxG.onMobile)
     {
-      var touch:FlxTouch = FlxG.touches.getFirst();
+      if(checkArea()) onMobileCredits();
+    }
 
-      if (touch != null)
+    /*
+      if (FlxG.onMobile)
       {
-        for (item in menuItems)
+        var touch:FlxTouch = FlxG.touches.getFirst();
+
+        if (touch != null)
         {
-          if (touch.overlaps(item))
+          for (item in menuItems)
           {
-            if (menuItems.selectedIndex == item.ID && touch.justPressed) menuItems.accept();
-            else
-              menuItems.selectItem(item.ID);
+            if (touch.overlaps(item))
+            {
+              if (menuItems.selectedIndex == item.ID && touch.justPressed) menuItems.accept();
+              else
+                menuItems.selectItem(item.ID);
+            }
           }
         }
-      }
-    }
+    }*/
 
     // Open the debug menu, defaults to ` / ~
     #if CHART_EDITOR_SUPPORTED

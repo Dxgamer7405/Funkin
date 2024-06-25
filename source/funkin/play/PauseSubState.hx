@@ -323,6 +323,11 @@ class PauseSubState extends MusicBeatSubState
     metadata.add(metadataPractice);
 
     updateMetadataText();
+
+    #if mobile
+    addVirtualPad(UP_DOWN, A);
+    addVirtualPadCamera(false);
+    #end
   }
 
   var charterFadeTween:Null<FlxTween> = null;

@@ -220,6 +220,11 @@ class StoryMenuState extends MusicBeatState
     // Updating Discord Rich Presence
     DiscordClient.changePresence('In the Menus', null);
     #end
+
+    #if mobile
+    addVirtualPad(LEFT_FULL, A_B);
+    addVirtualPadCamera(false);
+    #end
   }
 
   function rememberSelection():Void

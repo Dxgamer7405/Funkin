@@ -57,6 +57,11 @@ class OptionsState extends MusicBeatState
       setPage(Controls);
     }
 
+    #if mobile
+    addVirtualPad(LEFT_FULL, A_B);
+    addVirtualPadCamera(false);
+    #end
+    
     super.create();
   }
 
@@ -98,7 +103,10 @@ class OptionsState extends MusicBeatState
     PlayerSettings.reset();
     PlayerSettings.init();
 
-    switchPage(Options);
+    //switchPage(Options);
+    FlxTransitionableState.skipNextTransOut = true;
+		FlxTransitionableState.skipNextTransIn = true;
+    FlxG.resetState();
   }
 
   function exitToMainMenu()
@@ -184,6 +192,9 @@ class OptionsMenu extends Page
     add(items = new TextMenuList());
     createItem("PREFERENCES", function() switchPage(Preferences));
     createItem("CONTROLS", function() switchPage(Controls));
+    /*createItem("MOBILE CONTROLS", function() {
+      FlxG.state.openSubState(new mobile.MobileControlsSubState());
+    });*/
     createItem("INPUT OFFSETS", function() {
       FlxG.state.openSubState(new LatencyState());
     });

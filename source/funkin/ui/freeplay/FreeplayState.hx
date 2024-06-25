@@ -44,6 +44,7 @@ import funkin.ui.transition.LoadingState;
 import funkin.ui.transition.StickerSubState;
 import funkin.util.MathUtil;
 import lime.utils.Assets;
+import funkin.util.Utils.BSLTouchUtils;
 import flixel.tweens.misc.ShakeTween;
 import funkin.effects.IntervalShake;
 import funkin.ui.freeplay.SongMenuItem.FreeplayRank;
@@ -170,6 +171,13 @@ class FreeplayState extends MusicBeatSubState
 
   var letterSort:LetterSort;
   var exitMovers:ExitMoverData = new Map();
+
+  var TouchAreas = [
+  { name: "DiffArea", x: 0, y: 54, width: 374, height: 122 },
+  { name: "SongArea", x: 376, y: 152, width: 446, height: 569 },
+  { name: "idkArea", x: 384, y: 3, width: 442, height: 130 },
+  { name: "PlayArea", x: 832, y: 3, width: 470, height: 724 }
+  ];
 
   var stickerSubState:StickerSubState;
 
@@ -815,6 +823,10 @@ class FreeplayState extends MusicBeatSubState
     rememberSelection();
 
     changeSelection();
+    /*#if mobile
+    addVirtualPad(NONE, A);
+    addVirtualPadCamera(false);
+    #end*/
     changeDiff(0, true);
   }
 
@@ -871,6 +883,44 @@ class FreeplayState extends MusicBeatSubState
     }
 
     return songsToFilter;
+  }
+
+  var CoolDownFav:Bool = false;
+  var timersito:FlxTimer;
+
+  function makeFav()
+  {
+    if(CoolDownFav) return;
+
+    var targetSong = grpCapsules.members[curSelected]?.songData;
+    if (targetSong != null)
+   {
+    var realShit:Int = curSelected;
+    targetSong.isFav = !targetSong.isFav;
+    if (targetSong.isFav)
+    {
+      FlxTween.tween(grpCapsules.members[realShit], {angle: 360}, 0.4,
+        {
+          ease: FlxEase.elasticOut,
+          onComplete: _ -> {
+            grpCapsules.members[realShit].favIcon.visible = true;
+            grpCapsules.members[realShit].favIcon.animation.play('fav');
+          }
+        });
+    }
+    else
+    {
+      grpCapsules.members[realShit].favIcon.animation.play('fav', false, true);
+      new FlxTimer().start((1 / 24) * 14, _ -> {
+        grpCapsules.members[realShit].favIcon.visible = false;
+      });
+      new FlxTimer().start((1 / 24) * 24, _ -> {
+        FlxTween.tween(grpCapsules.members[realShit], {angle: 0}, 0.4, {ease: FlxEase.elasticOut});
+      });
+    }
+    CoolDownFav = true;
+    timersito = new FlxTimer().start(1, (timer:FlxTimer) -> { CoolDownFav = false; });
+   }
   }
 
   var sparks:FlxSprite;
@@ -1308,59 +1358,75 @@ class FreeplayState extends MusicBeatSubState
 
     if (FlxG.onMobile)
     {
-      for (touch in FlxG.touches.list)
+      if (BSLTouchUtils.justTouched())
       {
-        if (touch.justPressed)
-        {
-          initTouchPos.set(touch.screenX, touch.screenY);
-        }
-        if (touch.pressed)
-        {
-          var dx:Float = initTouchPos.x - touch.screenX;
-          var dy:Float = initTouchPos.y - touch.screenY;
+         initTouchPos.set(BSLTouchUtils.touchScreenX(), BSLTouchUtils.touchScreenY());
+      }
+      if (BSLTouchUtils.touched())
+      {
+        var dx:Float = initTouchPos.x - BSLTouchUtils.touchScreenX();
+        var dy:Float = initTouchPos.y - BSLTouchUtils.touchScreenY();
 
-          var angle:Float = Math.atan2(dy, dx);
-          var length:Float = Math.sqrt(dx * dx + dy * dy);
+        var angle:Float = Math.atan2(dy, dx);
+        var length:Float = Math.sqrt(dx * dx + dy * dy);
 
-          FlxG.watch.addQuick('LENGTH', length);
-          FlxG.watch.addQuick('ANGLE', Math.round(FlxAngle.asDegrees(angle)));
-        }
+        FlxG.watch.addQuick('LENGTH', length);
+        FlxG.watch.addQuick('ANGLE', Math.round(FlxAngle.asDegrees(angle)));
       }
 
       if (FlxG.touches.getFirst() != null)
       {
-        if (touchTimer >= 1.5) accepted = true;
+        if (touchTimer >= 0.6 && checkArea() == "PlayArea") {
+          switch (FlxG.touches.list.length) {
+            case 1:
+                if(!CoolDownFav) accepted = true;
+            case 2:
+                makeFav();
+                touchTimer = 0; //reseteada
+          }
+        }
 
         touchTimer += elapsed;
         var touch:FlxTouch = FlxG.touches.getFirst();
 
-        velTouch = Math.abs((touch.screenY - dyTouch)) / 50;
+        velTouch = Math.abs((BSLTouchUtils.touchScreenY() - dyTouch)) / 50;
 
-        dyTouch = touch.screenY - touchY;
-        dxTouch = touch.screenX - touchX;
+        dyTouch = BSLTouchUtils.touchScreenY() - touchY;
+        dxTouch = BSLTouchUtils.touchScreenX() - touchX;
 
         if (touch.justPressed)
         {
-          touchY = touch.screenY;
+          touchY = BSLTouchUtils.touchScreenY();
           dyTouch = 0;
           velTouch = 0;
 
-          touchX = touch.screenX;
+          touchX = BSLTouchUtils.touchScreenX();
           dxTouch = 0;
         }
 
-        if (Math.abs(dxTouch) >= 100)
+        switch(checkArea())
         {
-          touchX = touch.screenX;
-          if (dxTouch != 0) dxTouch < 0 ? changeDiff(1) : changeDiff(-1);
+          case "DiffArea":
+          if(touch.justReleased){
+            dj.resetAFKTimer();
+            changeDiff(1);
+            generateSongList(currentFilter, true);
+          }
+
+          case "SongArea":
+          if (Math.abs(dyTouch) >= 100)
+          {
+            touchY = BSLTouchUtils.touchScreenY();
+            if (dyTouch != 0) dyTouch < 0 ? changeSelection(1) : changeSelection(-1);
+          }
+          case "idkArea":
+          if (Math.abs(dxTouch) >= 100)
+          {
+            touchX = BSLTouchUtils.touchScreenX();
+            if (dxTouch != 0) dxTouch < 0 ? letterSort.changeSelection(1) : letterSort.changeSelection(-1);
+          }
         }
 
-        if (Math.abs(dyTouch) >= 100)
-        {
-          touchY = touch.screenY;
-
-          if (dyTouch != 0) dyTouch < 0 ? changeSelection(1) : changeSelection(-1);
-        }
       }
       else
       {
@@ -1371,9 +1437,9 @@ class FreeplayState extends MusicBeatSubState
     #if mobile
     for (touch in FlxG.touches.list)
     {
-      if (touch.justPressed)
+      if (curSelected == curSelected && touch.justPressed && touch.overlaps(grpCapsules.members[curSelected].capsule))
       {
-        // accepted = true;
+        accepted = true;
       }
     }
     #end
@@ -1453,7 +1519,7 @@ class FreeplayState extends MusicBeatSubState
       generateSongList(currentFilter, true);
     }
 
-    if (controls.BACK)
+    if (controls.BACK#if android || FlxG.android.justReleased.BACK#end)
     {
       busy = true;
       FlxTween.globalManager.clear();
@@ -1919,6 +1985,17 @@ class FreeplayState extends MusicBeatSubState
     result.persistentDraw = true;
     return result;
   }
+
+
+  public function checkArea() //mariomaestro ayudando a los causas - NOTA: tengo q mejorar esta mierda cfffffffff
+  {
+    for (area in TouchAreas)
+    {
+      if (BSLTouchUtils.touchScreenX() >= area.x && BSLTouchUtils.touchScreenX() <= area.x + area.width && BSLTouchUtils.touchScreenY() >= area.y && BSLTouchUtils.touchScreenY() <= area.y + area.height) return area.name;
+    }
+    return "nothing";
+  }
+
 }
 
 /**
