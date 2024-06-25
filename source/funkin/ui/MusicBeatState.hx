@@ -14,6 +14,12 @@ import funkin.modding.events.ScriptEvent;
 import funkin.modding.module.ModuleHandler;
 import funkin.util.SortUtil;
 import funkin.input.Controls;
+#if mobile
+import mobile.flixel.FlxVirtualPad;
+import flixel.FlxCamera;
+import flixel.input.actions.FlxActionInput;
+import flixel.util.FlxDestroyUtil;
+#end
 
 /**
  * MusicBeatState actually represents the core utility FlxState of the game.
@@ -25,6 +31,41 @@ class MusicBeatState extends FlxTransitionableState implements IEventHandler
 
   inline function get_controls():Controls
     return PlayerSettings.player1.controls;
+
+  #if mobile
+  var virtualPad:FlxVirtualPad;
+  var trackedInputsVirtualPad:Array<FlxActionInput> = [];
+
+  public function addVirtualPad(DPad:FlxDPadMode, Action:FlxActionMode)
+  {
+    if (virtualPad != null) removeVirtualPad();
+
+    virtualPad = new FlxVirtualPad(DPad, Action);
+    add(virtualPad);
+
+    controls.setVirtualPadUI(virtualPad, DPad, Action);
+    trackedInputsVirtualPad = controls.trackedInputsUI;
+    controls.trackedInputsUI = [];
+  }
+
+  public function removeVirtualPad()
+  {
+    if (trackedInputsVirtualPad != []) controls.removeVirtualControlsInput(trackedInputsVirtualPad);
+
+    if (virtualPad != null) remove(virtualPad);
+  }
+
+  public function addVirtualPadCamera(DefaultDrawTarget:Bool = true)
+  {
+    if (virtualPad != null)
+    {
+      var camControls:FlxCamera = new FlxCamera();
+      FlxG.cameras.add(camControls, DefaultDrawTarget);
+      camControls.bgColor.alpha = 0;
+      virtualPad.cameras = [camControls];
+    }
+  }
+  #end
 
   public var leftWatermarkText:FlxText = null;
   public var rightWatermarkText:FlxText = null;
@@ -69,9 +110,21 @@ class MusicBeatState extends FlxTransitionableState implements IEventHandler
 
   public override function destroy():Void
   {
+    #if mobile
+    if (trackedInputsVirtualPad != []) controls.removeVirtualControlsInput(trackedInputsVirtualPad);
+    #end
+
     super.destroy();
     Conductor.beatHit.remove(this.beatHit);
     Conductor.stepHit.remove(this.stepHit);
+
+    #if mobile
+    if (virtualPad != null)
+    {
+      virtualPad = FlxDestroyUtil.destroy(virtualPad);
+      virtualPad = null;
+    }
+    #end
   }
 
   function handleFunctionControls():Void
@@ -95,7 +148,7 @@ class MusicBeatState extends FlxTransitionableState implements IEventHandler
     // Both have an xPos of 0, but a width equal to the full screen.
     // The rightWatermarkText is right aligned, which puts the text in the correct spot.
     leftWatermarkText = new FlxText(0, FlxG.height - 18, FlxG.width, '', 12);
-    rightWatermarkText = new FlxText(0, FlxG.height - 18, FlxG.width, '', 12);
+    rightWatermarkText = new FlxText(0, 0, FlxG.width, '', 12); //hare que este sea el texto para los creditos ya q nadie lo usa xd
 
     // 100,000 should be good enough.
     leftWatermarkText.zIndex = 100000;
@@ -103,7 +156,7 @@ class MusicBeatState extends FlxTransitionableState implements IEventHandler
     leftWatermarkText.scrollFactor.set(0, 0);
     rightWatermarkText.scrollFactor.set(0, 0);
     leftWatermarkText.setFormat("VCR OSD Mono", 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
-    rightWatermarkText.setFormat("VCR OSD Mono", 16, FlxColor.WHITE, RIGHT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+    rightWatermarkText.setFormat("VCR OSD Mono", 20, FlxColor.WHITE, RIGHT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 
     add(leftWatermarkText);
     add(rightWatermarkText);

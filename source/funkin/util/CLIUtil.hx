@@ -15,7 +15,17 @@ class CLIUtil
   public static function resetWorkingDir():Void
   {
     #if sys
+
+    #if android
+    if (!sys.FileSystem.exists(funkin.util.SUtil.getStorageDirectory())) { //sys.setcwd doesnt work if the directory doesnt exists!11!!!!11
+			sys.FileSystem.createDirectory(funkin.util.SUtil.getStorageDirectory());
+      trace("creado");
+		}
+    
+    var exeDir:String = Path.addTrailingSlash(SUtil.getStorageDirectory()); //for android
+    #else
     var exeDir:String = Path.addTrailingSlash(Path.directory(Sys.programPath()));
+    #end
     #if mac
     exeDir = Path.addTrailingSlash(Path.join([exeDir, '../Resources/']));
     #end

@@ -20,6 +20,11 @@ import flixel.math.FlxPoint;
 import flixel.util.FlxColor;
 import flixel.util.FlxTimer;
 import lime.ui.Haptic;
+#if mobile
+import mobile.flixel.FlxButton;
+import mobile.flixel.FlxHitbox;
+import mobile.flixel.FlxVirtualPad;
+#end
 
 /**
  * A core class which handles receiving player input and interpreting it into game actions.
@@ -71,6 +76,10 @@ class Controls extends FlxActionSet
   var _volume_up = new FunkinAction(Action.VOLUME_UP);
   var _volume_down = new FunkinAction(Action.VOLUME_DOWN);
   var _volume_mute = new FunkinAction(Action.VOLUME_MUTE);
+
+  #if desktop
+  var _fullscreen = new FunkinAction(Action.FULLSCREEN);
+  #end
 
   var byName:Map<String, FunkinAction> = new Map<String, FunkinAction>();
 
@@ -297,6 +306,13 @@ class Controls extends FlxActionSet
   inline function get_VOLUME_MUTE()
     return _volume_mute.check();
 
+  #if desktop
+  public var FULLSCREEN(get, never):Bool;
+
+  inline function get_FULLSCREEN()
+    return _fullscreen.check();
+  #end
+
   public function new(name, scheme:KeyboardScheme = null)
   {
     super(name);
@@ -325,6 +341,7 @@ class Controls extends FlxActionSet
     add(_volume_up);
     add(_volume_down);
     add(_volume_mute);
+    #if desktop add(_fullscreen); #end
 
     for (action in digitalActions)
     {
@@ -341,6 +358,137 @@ class Controls extends FlxActionSet
 
     setKeyboardScheme(scheme, false);
   }
+
+  #if mobile
+  public var trackedInputsUI:Array<FlxActionInput> = [];
+  public var trackedInputsNOTES:Array<FlxActionInput> = [];
+
+  public function addButtonNOTES(action:FlxActionDigital, button:FlxButton, state:FlxInputState)
+  {
+    var input:FlxActionInputDigitalIFlxInput = new FlxActionInputDigitalIFlxInput(button, state);
+    trackedInputsNOTES.push(input);
+    action.add(input);
+  }
+
+  public function addButtonUI(action:FlxActionDigital, button:FlxButton, state:FlxInputState)
+  {
+    var input:FlxActionInputDigitalIFlxInput = new FlxActionInputDigitalIFlxInput(button, state);
+    trackedInputsUI.push(input);
+    action.add(input);
+  }
+
+  public function setHitBox(Hitbox:FlxHitbox)
+  {
+    inline forEachBound(Control.NOTE_LEFT, (action, state) -> addButtonNOTES(action, Hitbox.buttonsArray[0], state));
+    inline forEachBound(Control.NOTE_DOWN, (action, state) -> addButtonNOTES(action, Hitbox.buttonsArray[1], state));
+    inline forEachBound(Control.NOTE_UP, (action, state) -> addButtonNOTES(action, Hitbox.buttonsArray[2], state));
+    inline forEachBound(Control.NOTE_RIGHT, (action, state) -> addButtonNOTES(action, Hitbox.buttonsArray[3], state));
+  }
+
+  public function setVirtualPadUI(VirtualPad:FlxVirtualPad, DPad:FlxDPadMode, Action:FlxActionMode)
+  {
+    switch (DPad)
+    {
+      case UP_DOWN:
+        inline forEachBound(Control.UI_UP, (action, state) -> addButtonUI(action, VirtualPad.buttonUp, state));
+        inline forEachBound(Control.UI_DOWN, (action, state) -> addButtonUI(action, VirtualPad.buttonDown, state));
+      case LEFT_RIGHT:
+        inline forEachBound(Control.UI_LEFT, (action, state) -> addButtonUI(action, VirtualPad.buttonLeft, state));
+        inline forEachBound(Control.UI_RIGHT, (action, state) -> addButtonUI(action, VirtualPad.buttonRight, state));
+      case UP_LEFT_RIGHT:
+        inline forEachBound(Control.UI_UP, (action, state) -> addButtonUI(action, VirtualPad.buttonUp, state));
+        inline forEachBound(Control.UI_LEFT, (action, state) -> addButtonUI(action, VirtualPad.buttonLeft, state));
+        inline forEachBound(Control.UI_RIGHT, (action, state) -> addButtonUI(action, VirtualPad.buttonRight, state));
+      case LEFT_FULL | RIGHT_FULL:
+        inline forEachBound(Control.UI_UP, (action, state) -> addButtonUI(action, VirtualPad.buttonUp, state));
+        inline forEachBound(Control.UI_DOWN, (action, state) -> addButtonUI(action, VirtualPad.buttonDown, state));
+        inline forEachBound(Control.UI_LEFT, (action, state) -> addButtonUI(action, VirtualPad.buttonLeft, state));
+        inline forEachBound(Control.UI_RIGHT, (action, state) -> addButtonUI(action, VirtualPad.buttonRight, state));
+      case BOTH_FULL:
+        inline forEachBound(Control.UI_UP, (action, state) -> addButtonUI(action, VirtualPad.buttonUp, state));
+        inline forEachBound(Control.UI_DOWN, (action, state) -> addButtonUI(action, VirtualPad.buttonDown, state));
+        inline forEachBound(Control.UI_LEFT, (action, state) -> addButtonUI(action, VirtualPad.buttonLeft, state));
+        inline forEachBound(Control.UI_RIGHT, (action, state) -> addButtonUI(action, VirtualPad.buttonRight, state));
+        inline forEachBound(Control.UI_UP, (action, state) -> addButtonUI(action, VirtualPad.buttonUp2, state));
+        inline forEachBound(Control.UI_DOWN, (action, state) -> addButtonUI(action, VirtualPad.buttonDown2, state));
+        inline forEachBound(Control.UI_LEFT, (action, state) -> addButtonUI(action, VirtualPad.buttonLeft2, state));
+        inline forEachBound(Control.UI_RIGHT, (action, state) -> addButtonUI(action, VirtualPad.buttonRight2, state));
+      case NONE: // do nothing
+    }
+
+    switch (Action)
+    {
+      case A:
+        inline forEachBound(Control.ACCEPT, (action, state) -> addButtonUI(action, VirtualPad.buttonA, state));
+      case B:
+        inline forEachBound(Control.BACK, (action, state) -> addButtonUI(action, VirtualPad.buttonB, state));
+      case A_B | A_B_C | A_B_E | A_B_X_Y | A_B_C_X_Y | A_B_C_X_Y_Z | A_B_C_D_V_X_Y_Z:
+        inline forEachBound(Control.ACCEPT, (action, state) -> addButtonUI(action, VirtualPad.buttonA, state));
+        inline forEachBound(Control.BACK, (action, state) -> addButtonUI(action, VirtualPad.buttonB, state));
+      case NONE: // do nothing
+    }
+  }
+
+  public function setVirtualPadNOTES(VirtualPad:FlxVirtualPad, DPad:FlxDPadMode, Action:FlxActionMode)
+  {
+    switch (DPad)
+    {
+      case UP_DOWN:
+        inline forEachBound(Control.NOTE_UP, (action, state) -> addButtonNOTES(action, VirtualPad.buttonUp, state));
+        inline forEachBound(Control.NOTE_DOWN, (action, state) -> addButtonNOTES(action, VirtualPad.buttonDown, state));
+      case LEFT_RIGHT:
+        inline forEachBound(Control.NOTE_LEFT, (action, state) -> addButtonNOTES(action, VirtualPad.buttonLeft, state));
+        inline forEachBound(Control.NOTE_RIGHT, (action, state) -> addButtonNOTES(action, VirtualPad.buttonRight, state));
+      case UP_LEFT_RIGHT:
+        inline forEachBound(Control.NOTE_UP, (action, state) -> addButtonNOTES(action, VirtualPad.buttonUp, state));
+        inline forEachBound(Control.NOTE_LEFT, (action, state) -> addButtonNOTES(action, VirtualPad.buttonLeft, state));
+        inline forEachBound(Control.NOTE_RIGHT, (action, state) -> addButtonNOTES(action, VirtualPad.buttonRight, state));
+      case LEFT_FULL | RIGHT_FULL:
+        inline forEachBound(Control.NOTE_UP, (action, state) -> addButtonNOTES(action, VirtualPad.buttonUp, state));
+        inline forEachBound(Control.NOTE_DOWN, (action, state) -> addButtonNOTES(action, VirtualPad.buttonDown, state));
+        inline forEachBound(Control.NOTE_LEFT, (action, state) -> addButtonNOTES(action, VirtualPad.buttonLeft, state));
+        inline forEachBound(Control.NOTE_RIGHT, (action, state) -> addButtonNOTES(action, VirtualPad.buttonRight, state));
+      case BOTH_FULL:
+        inline forEachBound(Control.NOTE_UP, (action, state) -> addButtonNOTES(action, VirtualPad.buttonUp, state));
+        inline forEachBound(Control.NOTE_DOWN, (action, state) -> addButtonNOTES(action, VirtualPad.buttonDown, state));
+        inline forEachBound(Control.NOTE_LEFT, (action, state) -> addButtonNOTES(action, VirtualPad.buttonLeft, state));
+        inline forEachBound(Control.NOTE_RIGHT, (action, state) -> addButtonNOTES(action, VirtualPad.buttonRight, state));
+        inline forEachBound(Control.NOTE_UP, (action, state) -> addButtonNOTES(action, VirtualPad.buttonUp2, state));
+        inline forEachBound(Control.NOTE_DOWN, (action, state) -> addButtonNOTES(action, VirtualPad.buttonDown2, state));
+        inline forEachBound(Control.NOTE_LEFT, (action, state) -> addButtonNOTES(action, VirtualPad.buttonLeft2, state));
+        inline forEachBound(Control.NOTE_RIGHT, (action, state) -> addButtonNOTES(action, VirtualPad.buttonRight2, state));
+      case NONE: // do nothing
+    }
+
+    switch (Action)
+    {
+      case A:
+        inline forEachBound(Control.ACCEPT, (action, state) -> addButtonNOTES(action, VirtualPad.buttonA, state));
+      case B:
+        inline forEachBound(Control.BACK, (action, state) -> addButtonNOTES(action, VirtualPad.buttonB, state));
+      case A_B | A_B_C | A_B_E | A_B_X_Y | A_B_C_X_Y | A_B_C_X_Y_Z | A_B_C_D_V_X_Y_Z:
+        inline forEachBound(Control.ACCEPT, (action, state) -> addButtonNOTES(action, VirtualPad.buttonA, state));
+        inline forEachBound(Control.BACK, (action, state) -> addButtonNOTES(action, VirtualPad.buttonB, state));
+      case NONE: // do nothing
+    }
+  }
+
+  public function removeVirtualControlsInput(Tinputs:Array<FlxActionInput>)
+  {
+    for (action in this.digitalActions)
+    {
+      var i = action.inputs.length;
+      while (i-- > 0)
+      {
+        var x = Tinputs.length;
+        while (x-- > 0)
+        {
+          if (Tinputs[x] == action.inputs[i]) action.remove(action.inputs[i]);
+        }
+      }
+    }
+  }
+  #end
 
   override function update()
   {
@@ -431,6 +579,7 @@ class Controls extends FlxActionSet
       case VOLUME_UP: _volume_up;
       case VOLUME_DOWN: _volume_down;
       case VOLUME_MUTE: _volume_mute;
+      #if desktop case FULLSCREEN: _fullscreen; #end
     }
   }
 
@@ -514,6 +663,10 @@ class Controls extends FlxActionSet
         func(_volume_down, JUST_PRESSED);
       case VOLUME_MUTE:
         func(_volume_mute, JUST_PRESSED);
+      #if desktop
+      case FULLSCREEN:
+        func(_fullscreen, JUST_PRESSED);
+      #end
     }
   }
 
@@ -665,11 +818,6 @@ class Controls extends FlxActionSet
     forEachBound(control, function(action, state) addKeys(action, keys, state));
   }
 
-  public function bindSwipe(control:Control, swipeDir:Int = FlxDirectionFlags.UP, ?swpLength:Float = 90)
-  {
-    forEachBound(control, function(action, press) action.add(new FlxActionInputDigitalMobileSwipeGameplay(swipeDir, press, swpLength)));
-  }
-
   /**
    * Sets all actions that pertain to the binder to trigger when the supplied keys are used.
    * If binder is a literal you can inline this
@@ -728,6 +876,7 @@ class Controls extends FlxActionSet
     bindKeys(Control.VOLUME_UP, getDefaultKeybinds(scheme, Control.VOLUME_UP));
     bindKeys(Control.VOLUME_DOWN, getDefaultKeybinds(scheme, Control.VOLUME_DOWN));
     bindKeys(Control.VOLUME_MUTE, getDefaultKeybinds(scheme, Control.VOLUME_MUTE));
+    #if desktop bindKeys(Control.FULLSCREEN, getDefaultKeybinds(scheme, Control.FULLSCREEN)); #end
 
     bindMobileLol();
   }
@@ -763,6 +912,7 @@ class Controls extends FlxActionSet
           case Control.VOLUME_UP: return [PLUS, NUMPADPLUS];
           case Control.VOLUME_DOWN: return [MINUS, NUMPADMINUS];
           case Control.VOLUME_MUTE: return [ZERO, NUMPADZERO];
+          #if desktop case Control.FULLSCREEN: return [FlxKey.F11]; #end
         }
       case Duo(true):
         switch (control)
@@ -791,6 +941,7 @@ class Controls extends FlxActionSet
           case Control.VOLUME_UP: return [PLUS];
           case Control.VOLUME_DOWN: return [MINUS];
           case Control.VOLUME_MUTE: return [ZERO];
+          #if desktop case Control.FULLSCREEN: return [FlxKey.F]; #end
         }
       case Duo(false):
         switch (control)
@@ -819,6 +970,7 @@ class Controls extends FlxActionSet
           case Control.VOLUME_UP: return [NUMPADPLUS];
           case Control.VOLUME_DOWN: return [NUMPADMINUS];
           case Control.VOLUME_MUTE: return [NUMPADZERO];
+          #if desktop case Control.FULLSCREEN: return []; #end
         }
       default:
         // Fallthrough.
@@ -829,21 +981,6 @@ class Controls extends FlxActionSet
 
   function bindMobileLol()
   {
-    #if FLX_TOUCH
-    // MAKE BETTER TOUCH BIND CODE
-
-    bindSwipe(Control.NOTE_UP, FlxDirectionFlags.UP, 40);
-    bindSwipe(Control.NOTE_DOWN, FlxDirectionFlags.DOWN, 40);
-    bindSwipe(Control.NOTE_LEFT, FlxDirectionFlags.LEFT, 40);
-    bindSwipe(Control.NOTE_RIGHT, FlxDirectionFlags.RIGHT, 40);
-
-    // feels more like drag when up/down are inversed
-    bindSwipe(Control.UI_UP, FlxDirectionFlags.DOWN);
-    bindSwipe(Control.UI_DOWN, FlxDirectionFlags.UP);
-    bindSwipe(Control.UI_LEFT, FlxDirectionFlags.LEFT);
-    bindSwipe(Control.UI_RIGHT, FlxDirectionFlags.RIGHT);
-    #end
-
     #if android
     forEachBound(Control.BACK, function(action, pres) {
       action.add(new FlxActionInputDigitalAndroid(FlxAndroidKey.BACK, JUST_PRESSED));
@@ -999,13 +1136,6 @@ class Controls extends FlxActionSet
   public function bindButtons(control:Control, id, buttons)
   {
     forEachBound(control, function(action, state) addButtons(action, buttons, state, id));
-  }
-
-  public function touchShit(control:Control, id)
-  {
-    forEachBound(control, function(action, state) {
-      // action
-    });
   }
 
   /**
@@ -1542,6 +1672,7 @@ enum Control
   ACCEPT;
   BACK;
   PAUSE;
+  #if desktop FULLSCREEN; #end
   // CUTSCENE
   CUTSCENE_ADVANCE;
   // FREEPLAY

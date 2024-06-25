@@ -694,6 +694,11 @@ class PlayState extends MusicBeatSubState
     }
     initStrumlines();
 
+    #if mobile
+    addMobileControls(false);
+    mobileControls.visible = false;
+    #end
+
     // Initialize the judgements and combo meter.
     comboPopUps = new PopUpStuff();
     comboPopUps.zIndex = 900;
@@ -1928,6 +1933,9 @@ class PlayState extends MusicBeatSubState
 
     // TODO: Maybe tween in the camera after any cutscenes.
     camHUD.visible = true;
+    #if mobile
+    mobileControls.visible = true;
+    #end
   }
 
   /**
@@ -2079,6 +2087,20 @@ class PlayState extends MusicBeatSubState
 
     // Do the minimal possible work here.
     inputPressQueue.push(event);
+  }
+
+  // By @MatheusSilver
+  // Medida de segurança, pois não sei como o resto do jooj responderia se eu tornasse a função de cima pública.
+  public function onHitboxPress(event:PreciseInputEvent):Void
+  {
+    if (isGamePaused) return;
+    inputPressQueue.push(event);
+  }
+
+  public function onHitboxRelease(event:PreciseInputEvent):Void
+  {
+    if (isGamePaused) return;
+    inputReleaseQueue.push(event);
   }
 
   /**
@@ -2750,16 +2772,25 @@ class PlayState extends MusicBeatSubState
    */
   function handleCutsceneKeys(elapsed:Float):Void
   {
+    #if mobile
+    var pressedEnter:Bool = FlxG.keys.justPressed.ENTER;
+
+    for (touch in FlxG.touches.list)
+    {
+      if (touch.justPressed) pressedEnter = true;
+    }
+    #end
+
     if (isGamePaused) return;
 
     if (currentConversation != null)
     {
       // Pause/unpause may conflict with advancing the conversation!
-      if (controls.CUTSCENE_ADVANCE && !justUnpaused)
+      if (controls.CUTSCENE_ADVANCE #if mobile || pressedEnter #end && !justUnpaused)
       {
         currentConversation.advanceConversation();
       }
-      else if (controls.PAUSE && !justUnpaused)
+      else if (controls.PAUSE #if android || FlxG.android.justReleased.BACK #end && !justUnpaused)
       {
         currentConversation.pauseMusic();
 
@@ -2775,7 +2806,7 @@ class PlayState extends MusicBeatSubState
     else if (VideoCutscene.isPlaying())
     {
       // This is a video cutscene.
-      if (controls.PAUSE && !justUnpaused)
+      if (controls.PAUSE #if android || FlxG.android.justReleased.BACK #end && !justUnpaused)
       {
         VideoCutscene.pauseVideo();
 
@@ -2810,6 +2841,9 @@ class PlayState extends MusicBeatSubState
     if (FlxG.sound.music != null) FlxG.sound.music.volume = 0;
     vocals.volume = 0;
     mayPauseGame = false;
+    #if mobile
+    mobileControls.visible = false;
+    #end
 
     // Check if any events want to prevent the song from ending.
     var event = new ScriptEvent(SONG_END, true);

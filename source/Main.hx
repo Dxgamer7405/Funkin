@@ -2,16 +2,19 @@ package;
 
 import flixel.FlxGame;
 import flixel.FlxState;
-import funkin.util.logging.CrashHandler;
-import funkin.ui.debug.MemoryCounter;
 import funkin.save.Save;
+import funkin.ui.debug.MemoryCounter;
+import funkin.util.logging.CrashHandler;
 import haxe.ui.Toolkit;
+import openfl.Lib;
 import openfl.display.FPS;
 import openfl.display.Sprite;
 import openfl.events.Event;
-import openfl.Lib;
 import openfl.media.Video;
 import openfl.net.NetStream;
+import funkin.util.SUtil;
+
+using StringTools;
 
 /**
  * The main class which initializes HaxeFlixel and starts the game in its initial state.
@@ -36,6 +39,7 @@ class Main extends Sprite
   public static function main():Void
   {
     // We need to make the crash handler LITERALLY FIRST so nothing EVER gets past it.
+    SUtil.uncaughtErrorHandler();
     CrashHandler.initialize();
     CrashHandler.queryStatus();
 
@@ -49,6 +53,8 @@ class Main extends Sprite
     // Initialize custom logging.
     haxe.Log.trace = funkin.util.logging.AnsiTrace.trace;
     funkin.util.logging.AnsiTrace.traceBF();
+
+    trace(Std.string(Sys.getCwd()));
 
     // Load mods to override assets.
     // TODO: Replace with loadEnabledMods() once the user can configure the mod list.
@@ -104,7 +110,9 @@ class Main extends Sprite
     // George recommends binding the save before FlxGame is created.
     Save.load();
     var game:FlxGame = new FlxGame(gameWidth, gameHeight, initialState, framerate, framerate, skipSplash, startFullscreen);
-
+    #if mobile
+    SUtil.checkFiles();
+    #end
     // FlxG.game._customSoundTray wants just the class, it calls new from
     // create() in there, which gets called when it's added to stage
     // which is why it needs to be added before addChild(game) here

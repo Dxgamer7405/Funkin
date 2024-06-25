@@ -23,7 +23,7 @@ xsi:schemaLocation="http://lime.openfl.org/project/1.0.4 http://lime.openfl.org/
 	<!--Desktop-specific-->
 	<window if="desktop" orientation="landscape" fullscreen="false" resizable="true" vsync="false" />
 	<!--Mobile-specific-->
-	<window if="mobile" orientation="landscape" fullscreen="true" width="0" height="0" resizable="false" />
+	<window if="mobile" orientation="landscape" fullscreen="true" resizable="false" allow-shaders="true" require-shaders="true" allow-high-dpi="true" />
 	<!-- _____________________________ Path Settings ____________________________ -->
 
 	<set name="BUILD_DIR" value="export/debug" if="debug" />
@@ -103,6 +103,8 @@ xsi:schemaLocation="http://lime.openfl.org/project/1.0.4 http://lime.openfl.org/
 		NOT USING A DIRECT THING TO THE ASSET!!!
 	-->
 	<assets path="assets/fonts" embed="true" />
+	<assets path="mobile" rename="assets/mobile" if="mobile" />
+	<define name="mobileC" if="mobile" />
 
 	<!-- If compiled via github actions, show debug version number. -->
 	<define name="FORCE_DEBUG_VERSION" if="GITHUB_BUILD" />
@@ -124,9 +126,10 @@ xsi:schemaLocation="http://lime.openfl.org/project/1.0.4 http://lime.openfl.org/
 	<haxelib name="flixel-text-input" /> <!-- Improved text field rendering for HaxeUI -->
 	<haxelib name="polymod" /> <!-- Modding framework -->
 	<haxelib name="flxanimate" /> <!-- Texture atlas rendering -->
-	<haxelib name="hxCodec" if="desktop" unless="hl" /> <!-- Video playback -->
+	<haxelib name="extension-androidtools" if="android" /> <!-- Android Functions -->
+	<haxelib name="hxvlc"/> <!-- Video playback -->
 	<haxelib name="funkin.vis"/>
-	<haxelib name="grig.audio" />
+	<haxelib name="grig.audio"/>
 
 	<haxelib name="FlxPartialSound" /> <!-- Loading partial sound data -->
 
@@ -153,10 +156,15 @@ xsi:schemaLocation="http://lime.openfl.org/project/1.0.4 http://lime.openfl.org/
 	<haxedef name="message.reporting" value="pretty" />
 
 	<!-- _________________________________ Custom _______________________________ -->
+
+	<android permission="android.permission.CAPTURE_AUDIO_OUTPUT"/>
+	<android target-sdk-version="29" if="android"/>
+	<android min-sdk-version="19" if="android"/>
+
 	<!-- Disable trace() calls in release builds to bump up performance.
 		<haxeflag name="- -no-traces" unless="debug" />-->
 	<!-- HScript relies heavily on Reflection, which means we can't use DCE. -->
-	<haxeflag name="-dce no" />
+  <haxeflag name="-dce no" />
 	<!-- Ensure all Funkin' classes are available at runtime. -->
 	<haxeflag name="--macro" value="include('funkin')" />
 	<!-- Ensure all UI components are available at runtime. -->
@@ -195,6 +203,9 @@ xsi:schemaLocation="http://lime.openfl.org/project/1.0.4 http://lime.openfl.org/
 	<haxedef name="haxeui_dont_impose_base_class" />
 	<haxedef name="HARDCODED_CREDITS" />
 
+	<!--Allow working memory greater than 1 Gig-->
+	<haxedef name="HXCPP_GC_BIG_BLOCKS" />
+
 	<!-- Skip the Intro -->
 	<section if="debug">
 		<!-- Starts the game at the specified week, at the first song -->
@@ -204,7 +215,7 @@ xsi:schemaLocation="http://lime.openfl.org/project/1.0.4 http://lime.openfl.org/
 		<!-- Difficulty, only used for week or song, defaults to 1 -->
 		<!-- <haxedef name="dif" value="2" if="debug"/> -->
 	</section>
-	<section if="newgrounds">
+	<section if="newgrounds" >
 		<!-- Enables Ng.core.verbose -->
 		<!-- <haxedef name="NG_VERBOSE" /> -->
 		<!-- Enables a NG debug session, so medals don't permently unlock -->
@@ -216,7 +227,7 @@ xsi:schemaLocation="http://lime.openfl.org/project/1.0.4 http://lime.openfl.org/
 	<!-- Uncomment this to wipe your input settings. -->
 	<!-- <haxedef name="CLEAR_INPUT_SAVE"/> -->
 
-	<section if="debug" unless="NO_REDIRECT_ASSETS_FOLDER || html5 || GITHUB_BUILD">
+	<section if="debug" unless="NO_REDIRECT_ASSETS_FOLDER || html5 || mobile || GITHUB_BUILD">
 		<!--
 			Use the parent assets folder rather than the exported one
 			No more will we accidentally undo our changes!
@@ -224,6 +235,9 @@ xsi:schemaLocation="http://lime.openfl.org/project/1.0.4 http://lime.openfl.org/
 		<haxedef name="REDIRECT_ASSETS_FOLDER" />
 	</section>
 
+	<section if="mobile">
+		<architecture include="armv7" if="android" />
+	</section>
 
 	<section>
 		<!--
@@ -234,18 +248,18 @@ xsi:schemaLocation="http://lime.openfl.org/project/1.0.4 http://lime.openfl.org/
 	</section>
 
 	<!-- Run a script before and after building. -->
-	<prebuild haxe="source/Prebuild.hx"/> -->
-	<postbuild haxe="source/Postbuild.hx"/> -->
+	<prebuild haxe="source/Prebuild.hx"/>
+	<postbuild haxe="source/Postbuild.hx"/>
 
 	<!-- Enable this on platforms which do not support dropping files onto the window. -->
-	<haxedef name="FILE_DROP_UNSUPPORTED" if="mac" />
+	<haxedef name="FILE_DROP_UNSUPPORTED" if="mac || mobile" />
 	<section unless="FILE_DROP_UNSUPPORTED">
 		<haxedef name="FILE_DROP_SUPPORTED" />
 	</section>
 
 	<!-- Enable this on platforms which do not support the edsior views. -->
-	<haxedef name="CHART_EDITOR_UNSUPPORTED" if="web" />
-	<haxedef name="CHART_EDITOR_SUPPORTED" unless="web"/>
+	<haxedef name="CHART_EDITOR_UNSUPPORTED" if="web || mobile" />
+	<haxedef name="CHART_EDITOR_SUPPORTED" unless="web || mobile"/>
 
 	<!-- Options for Polymod -->
 	<section if="polymod">
