@@ -203,9 +203,6 @@ xsi:schemaLocation="http://lime.openfl.org/project/1.0.4 http://lime.openfl.org/
 	<haxedef name="haxeui_dont_impose_base_class" />
 	<haxedef name="HARDCODED_CREDITS" />
 
-	<!--Allow working memory greater than 1 Gig-->
-	<haxedef name="HXCPP_GC_BIG_BLOCKS" />
-
 	<!-- Skip the Intro -->
 	<section if="debug">
 		<!-- Starts the game at the specified week, at the first song -->
